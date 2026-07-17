@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#55acee" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="つぶやき帳" />
+    <meta name="description" content="iPhoneから編集できる軽量な非公開タイムライン" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/app-icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>つぶやき帳</title>
+  </head>
+  <body>
+    <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
+      <div class="login-card">
+        <div class="brand-mark" aria-hidden="true">t</div>
+        <h1 id="loginTitle">つぶやき帳</h1>
+        <p class="login-copy">閲覧用または管理者用の<br />パスワードを入力してください。</p>
+        <form id="loginForm">
+          <label class="sr-only" for="password">パスワード</label>
+          <input id="password" name="password" type="password" inputmode="numeric" autocomplete="current-password" placeholder="パスワード" required />
+          <p class="login-error" id="loginError" role="alert"></p>
+          <button class="primary-button wide" type="submit">ログイン</button>
+        </form>
+        <div class="demo-hint">
+          <span>閲覧用のサンプルパスワード　2525</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="app-shell is-hidden" id="appShell">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <button class="brand-button" id="homeButton" type="button" aria-label="一番上へ戻る">
+            <span class="brand-mark small" aria-hidden="true">t</span>
+            <span>つぶやき帳</span>
+          </button>
+          <div class="topbar-actions">
+            <button class="quiet-button is-hidden" id="profileEditButton" type="button">プロフィール編集</button>
+            <button class="quiet-button" id="logoutButton" type="button">ログアウト</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-grid">
+        <aside class="profile-card panel">
+          <div class="cover" id="profileCover"></div>
+          <div class="profile-body">
+            <div class="avatar large" id="profileAvatar">E</div>
+            <div class="profile-text">
+              <strong id="profileName">Ericの記録</strong>
+              <span id="profileHandle">@private_note</span>
+            </div>
+            <p id="profileBio">写真と短い記録を残す、身内向けの非公開ページ。</p>
+            <dl class="profile-stats">
+              <div><dt>投稿</dt><dd id="postCount">0</dd></div>
+              <div><dt>写真</dt><dd id="photoCount">0</dd></div>
+            </dl>
+          </div>
+        </aside>
+
+        <main class="timeline panel" aria-labelledby="timelineTitle">
+          <section class="mobile-profile-card">
+            <div class="mobile-profile-cover" id="mobileProfileCover"></div>
+            <div class="mobile-profile-body">
+              <div class="avatar mobile-large" id="mobileProfileAvatar">E</div>
+              <strong id="mobileProfileName">Ericの記録</strong>
+              <span id="mobileProfileHandle">@private_note</span>
+              <p id="mobileProfileBio">写真と短い記録を残す、身内向けの非公開ページ。</p>
+            </div>
+          </section>
+
+          <div class="timeline-title">
+            <h1 id="timelineTitle">タイムライン</h1>
+            <span id="roleBadge">非公開</span>
+          </div>
+
+          <div class="viewer-notice is-hidden" id="viewerNotice">
+            閲覧専用でログインしています
+          </div>
+
+          <section class="composer" id="composer" aria-label="新しい投稿">
+            <div class="avatar" id="composerAvatar">E</div>
+            <form id="postForm" class="composer-form">
+              <label class="sr-only" for="postText">投稿内容</label>
+              <textarea id="postText" maxlength="1000" rows="4" placeholder="いまどうしてる？"></textarea>
+              <label class="sr-only" for="youtubeInput">YouTubeリンク</label>
+              <input class="youtube-input" id="youtubeInput" type="url" inputmode="url" placeholder="YouTubeリンクを追加" />
+              <div class="image-previews is-hidden" id="imagePreviews" aria-label="選択した写真"></div>
+              <div class="video-preview-wrap is-hidden" id="videoPreviewWrap">
+                <video id="videoPreview" controls playsinline preload="metadata"></video>
+                <div class="video-preview-meta">
+                  <span id="videoMeta"></span>
+                  <button id="removeVideo" type="button">動画を外す</button>
+                </div>
+              </div>
+              <div class="composer-actions">
+                <label class="photo-button" for="photoInput">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h3l1.4-2h7.2l1.4 2h3a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2Zm8 3.2a4.4 4.4 0 1 0 0 8.8 4.4 4.4 0 0 0 0-8.8Z" /></svg>
+                  写真 <span id="photoSelectionCount">0/10</span>
+                </label>
+                <input id="photoInput" type="file" accept="image/*" multiple hidden />
+                <label class="photo-button" for="videoInput">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11a2 2 0 0 1 2 2v2.6l4-2.5a1 1 0 0 1 1.5.85v10.1a1 1 0 0 1-1.5.85l-4-2.5V18a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" /></svg>
+                  動画
+                </label>
+                <input id="videoInput" type="file" accept="video/*" hidden />
+                <span class="char-count" id="charCount">1000</span>
+                <button class="primary-button post-button" type="submit">投稿する</button>
+              </div>
+            </form>
+          </section>
+
+          <div id="timelineFeed" aria-live="polite"></div>
+          <div class="empty-state is-hidden" id="emptyState">
+            <strong>まだ投稿がありません</strong>
+            <p>上の入力欄から最初の投稿を作れます。</p>
+          </div>
+        </main>
+
+        <aside class="info-card panel">
+          <h2>管理者だけができること</h2>
+          <ul>
+            <li>1000文字までの投稿</li>
+            <li>写真を最大10枚</li>
+            <li>動画を最大4GB</li>
+            <li>YouTubeリンクの埋め込み</li>
+            <li>プロフィールと画像の変更</li>
+            <li>投稿内容の編集</li>
+            <li>投稿の削除</li>
+            <li>iPhone内への自動保存</li>
+          </ul>
+          <p>閲覧用パスワードでは投稿欄、編集、削除が表示されません。</p>
+        </aside>
+      </div>
+    </div>
+
+    <div class="modal is-hidden" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="modal-card">
+        <h2 id="editTitle">投稿を編集</h2>
+        <textarea id="editText" maxlength="1000" rows="8"></textarea>
+        <div class="modal-actions">
+          <button class="quiet-button" id="cancelEdit" type="button">キャンセル</button>
+          <button class="primary-button" id="saveEdit" type="button">保存する</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal is-hidden" id="deleteModal" role="dialog" aria-modal="true" aria-labelledby="deleteTitle">
+      <div class="modal-card confirm-card">
+        <h2 id="deleteTitle">投稿を削除しますか？</h2>
+        <p>削除した投稿は元に戻せません。</p>
+        <div class="modal-actions">
+          <button class="quiet-button" id="cancelDelete" type="button">キャンセル</button>
+          <button class="danger-button" id="confirmDelete" type="button">削除する</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal is-hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileEditTitle">
+      <div class="modal-card profile-editor-card">
+        <h2 id="profileEditTitle">プロフィール編集</h2>
+        <div class="profile-editor-preview">
+          <div class="profile-preview-cover" id="profilePreviewCover"></div>
+          <div class="avatar profile-preview-avatar" id="profilePreviewAvatar">E</div>
+        </div>
+        <div class="profile-media-actions">
+          <label class="quiet-button file-label" for="profileAvatarInput">アイコンを選択</label>
+          <input id="profileAvatarInput" type="file" accept="image/*" hidden />
+          <button class="quiet-button" id="removeProfileAvatar" type="button">アイコンを戻す</button>
+          <label class="quiet-button file-label" for="profileBannerInput">バナーを選択</label>
+          <input id="profileBannerInput" type="file" accept="image/*" hidden />
+          <button class="quiet-button" id="removeProfileBanner" type="button">バナーを戻す</button>
+        </div>
+        <label class="profile-field" for="profileNameInput">
+          <span>表示名</span>
+          <input id="profileNameInput" maxlength="30" />
+        </label>
+        <label class="profile-field" for="profileHandleInput">
+          <span>ユーザー名</span>
+          <div class="handle-input"><span>@</span><input id="profileHandleInput" maxlength="20" autocapitalize="none" /></div>
+        </label>
+        <label class="profile-field" for="profileBioInput">
+          <span>紹介文</span>
+          <textarea id="profileBioInput" maxlength="160" rows="3"></textarea>
+        </label>
+        <div class="modal-actions">
+          <button class="quiet-button" id="cancelProfileEdit" type="button">キャンセル</button>
+          <button class="primary-button" id="saveProfile" type="button">保存する</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="image-lightbox is-hidden" id="imageLightbox" role="dialog" aria-modal="true" aria-label="写真を拡大表示">
+      <button class="lightbox-close" id="closeLightbox" type="button" aria-label="拡大表示を閉じる">×</button>
+      <img id="lightboxImage" alt="拡大した投稿写真" />
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
