@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#58b9e9"/>
+      <stop offset=".65" stop-color="#dff3f8"/>
+      <stop offset="1" stop-color="#ffcf88"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#2699c6"/>
+      <stop offset="1" stop-color="#116c91"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="720" fill="url(#sky)"/>
+  <circle cx="935" cy="160" r="62" fill="#fff4c2" opacity=".9"/>
+  <path d="M0 430Q220 390 410 438T790 425T1200 430V720H0Z" fill="url(#sea)"/>
+  <path d="M0 515Q270 485 520 530T1000 510T1200 525" fill="none" stroke="#bde9ee" stroke-width="11" opacity=".7"/>
+  <g fill="#173b4c">
+    <path d="M285 470l27-111 27 111Z"/>
+    <rect x="305" y="365" width="14" height="170"/>
+    <path d="M740 478c13-74 37-111 72-111s59 37 72 111l-41 57h-62Z"/>
+    <circle cx="812" cy="325" r="35"/>
+    <path d="M785 377l-70 70 24 24 67-58 65 55 25-25-72-67Z"/>
+  </g>
+  <g fill="#ec4c67">
+    <path d="M745 407l67-32 62 34-21 117h-82Z"/>
+    <path d="M780 526l-48 114h45l39-84 42 84h44l-50-114Z"/>
+  </g>
+  <text x="55" y="92" font-family="sans-serif" font-size="42" font-weight="700" fill="#123e51">SUMMER FESTIVAL</text>
+  <text x="58" y="142" font-family="sans-serif" font-size="24" fill="#315e70">PRIVATE PHOTO NOTE</text>
+</svg>

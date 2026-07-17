@@ -6,18 +6,18 @@
     <meta name="theme-color" content="#55acee" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="つぶやき帳" />
+    <meta name="apple-mobile-web-app-title" content="プライベートSNS" />
     <meta name="description" content="iPhoneから編集できる軽量な非公開タイムライン" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icons/app-icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./style.css" />
-    <title>きゆのプライベートSNS</title>
+    <title>プライベートSNS</title>
   </head>
   <body>
     <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
       <div class="login-card">
         <div class="brand-mark" aria-hidden="true">t</div>
-        <h1 id="loginTitle">つぶやき帳</h1>
+        <h1 id="loginTitle">プライベートSNS</h1>
         <p class="login-copy">閲覧用または管理者用の<br />パスワードを入力してください。</p>
         <form id="loginForm">
           <label class="sr-only" for="password">パスワード</label>
@@ -25,9 +25,6 @@
           <p class="login-error" id="loginError" role="alert"></p>
           <button class="primary-button wide" type="submit">ログイン</button>
         </form>
-        <div class="demo-hint">
-          <span>閲覧用のパスワードは口頭のみ</span>
-        </div>
       </div>
     </section>
 
@@ -36,9 +33,10 @@
         <div class="topbar-inner">
           <button class="brand-button" id="homeButton" type="button" aria-label="一番上へ戻る">
             <span class="brand-mark small" aria-hidden="true">t</span>
-            <span>きゆのプライベートSNS</span>
+            <span>つぶやき帳</span>
           </button>
           <div class="topbar-actions">
+            <button class="quiet-button is-hidden" id="syncSettingsButton" type="button">接続</button>
             <button class="quiet-button is-hidden" id="profileEditButton" type="button">プロフィール編集</button>
             <button class="quiet-button" id="logoutButton" type="button">ログアウト</button>
           </div>
@@ -46,22 +44,6 @@
       </header>
 
       <div class="page-grid">
-        <aside class="profile-card panel">
-          <div class="cover" id="profileCover"></div>
-          <div class="profile-body">
-            <div class="avatar large" id="profileAvatar">E</div>
-            <div class="profile-text">
-              <strong id="profileName">Ericの記録</strong>
-              <span id="profileHandle">@private_note</span>
-            </div>
-            <p id="profileBio">写真と短い記録を残す、身内向けの非公開ページ。</p>
-            <dl class="profile-stats">
-              <div><dt>投稿</dt><dd id="postCount">0</dd></div>
-              <div><dt>写真</dt><dd id="photoCount">0</dd></div>
-            </dl>
-          </div>
-        </aside>
-
         <main class="timeline panel" aria-labelledby="timelineTitle">
           <section class="mobile-profile-card">
             <div class="mobile-profile-cover" id="mobileProfileCover"></div>
@@ -78,6 +60,12 @@
             <span id="roleBadge">非公開</span>
           </div>
 
+          <div class="sync-status" id="syncStatus">
+            <span class="sync-dot"></span>
+            <span id="syncStatusText">共通データを読み込み中</span>
+            <button id="refreshDataButton" type="button">更新</button>
+          </div>
+
           <div class="viewer-notice is-hidden" id="viewerNotice">
             閲覧専用でログインしています
           </div>
@@ -90,24 +78,12 @@
               <label class="sr-only" for="youtubeInput">YouTubeリンク</label>
               <input class="youtube-input" id="youtubeInput" type="url" inputmode="url" placeholder="YouTubeリンクを追加" />
               <div class="image-previews is-hidden" id="imagePreviews" aria-label="選択した写真"></div>
-              <div class="video-preview-wrap is-hidden" id="videoPreviewWrap">
-                <video id="videoPreview" controls playsinline preload="metadata"></video>
-                <div class="video-preview-meta">
-                  <span id="videoMeta"></span>
-                  <button id="removeVideo" type="button">動画を外す</button>
-                </div>
-              </div>
               <div class="composer-actions">
                 <label class="photo-button" for="photoInput">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h3l1.4-2h7.2l1.4 2h3a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2Zm8 3.2a4.4 4.4 0 1 0 0 8.8 4.4 4.4 0 0 0 0-8.8Z" /></svg>
                   写真 <span id="photoSelectionCount">0/10</span>
                 </label>
                 <input id="photoInput" type="file" accept="image/*" multiple hidden />
-                <label class="photo-button" for="videoInput">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11a2 2 0 0 1 2 2v2.6l4-2.5a1 1 0 0 1 1.5.85v10.1a1 1 0 0 1-1.5.85l-4-2.5V18a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" /></svg>
-                  動画
-                </label>
-                <input id="videoInput" type="file" accept="video/*" hidden />
                 <span class="char-count" id="charCount">1000</span>
                 <button class="primary-button post-button" type="submit">投稿する</button>
               </div>
@@ -120,21 +96,6 @@
             <p>上の入力欄から最初の投稿を作れます。</p>
           </div>
         </main>
-
-        <aside class="info-card panel">
-          <h2>管理者だけができること</h2>
-          <ul>
-            <li>1000文字までの投稿</li>
-            <li>写真を最大10枚</li>
-            <li>動画を最大4GB</li>
-            <li>YouTubeリンクの埋め込み</li>
-            <li>プロフィールと画像の変更</li>
-            <li>投稿内容の編集</li>
-            <li>投稿の削除</li>
-            <li>iPhone内への自動保存</li>
-          </ul>
-          <p>閲覧用パスワードでは投稿欄、編集、削除が表示されません。</p>
-        </aside>
       </div>
     </div>
 
@@ -194,12 +155,44 @@
       </div>
     </div>
 
+    <div class="modal is-hidden" id="githubModal" role="dialog" aria-modal="true" aria-labelledby="githubTitle">
+      <div class="modal-card github-card">
+        <h2 id="githubTitle">GitHub接続</h2>
+        <p class="github-copy">管理者のiPhoneだけに、発行したトークンを設定します。</p>
+        <dl class="repo-details">
+          <div><dt>アカウント</dt><dd>yosakoi-web</dd></div>
+          <div><dt>リポジトリ</dt><dd>kiyu_private</dd></div>
+        </dl>
+        <label class="profile-field" for="githubTokenInput">
+          <span>Fine-grained token</span>
+          <input id="githubTokenInput" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="github_pat_..." />
+        </label>
+        <label class="remember-token">
+          <input id="rememberTokenInput" type="checkbox" checked />
+          <span>このiPhoneに保存する</span>
+        </label>
+        <p class="connection-message" id="connectionMessage" role="status"></p>
+        <div class="github-actions">
+          <button class="quiet-button" id="clearTokenButton" type="button">保存済みトークンを削除</button>
+          <span></span>
+          <button class="quiet-button" id="cancelGithubButton" type="button">閉じる</button>
+          <button class="primary-button" id="connectGithubButton" type="button">接続確認</button>
+        </div>
+      </div>
+    </div>
+
     <div class="image-lightbox is-hidden" id="imageLightbox" role="dialog" aria-modal="true" aria-label="写真を拡大表示">
       <button class="lightbox-close" id="closeLightbox" type="button" aria-label="拡大表示を閉じる">×</button>
       <img id="lightboxImage" alt="拡大した投稿写真" />
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="busy-overlay is-hidden" id="busyOverlay" aria-live="assertive">
+      <div class="busy-card">
+        <span class="spinner" aria-hidden="true"></span>
+        <strong id="busyMessage">保存中</strong>
+      </div>
+    </div>
     <script type="module" src="./app.js"></script>
   </body>
 </html>

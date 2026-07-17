@@ -1,0 +1,17 @@
+{
+  "name": "つぶやき帳",
+  "short_name": "つぶやき帳",
+  "description": "iPhoneで投稿と編集ができる非公開タイムライン",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#eef5f8",
+  "theme_color": "#55acee",
+  "icons": [
+    {
+      "src": "./icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

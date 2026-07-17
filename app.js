@@ -1,11 +1,14 @@
 const VIEW_PASSWORD = "2525";
 const ADMIN_PASSWORD = "7290";
-const STORAGE_KEY = "tsubuyaki-demo-posts-v1";
-const PROFILE_KEY = "tsubuyaki-demo-profile-v1";
-const ROLE_KEY = "tsubuyaki-demo-role";
+const ROLE_KEY = "kiyu-role";
+const TOKEN_LOCAL_KEY = "kiyu-github-token";
+const TOKEN_SESSION_KEY = "kiyu-github-token-session";
+const GITHUB_OWNER = "yosakoi-web";
+const GITHUB_REPO = "kiyu_private";
+const GITHUB_BRANCH = "main";
+const STATE_PATH = "data/state.json";
 const MAX_TEXT_LENGTH = 1000;
 const MAX_IMAGES = 10;
-const MAX_VIDEO_SIZE = 4 * 1024 * 1024 * 1024;
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -18,11 +21,7 @@ const elements = {
   logoutButton: $("#logoutButton"),
   homeButton: $("#homeButton"),
   profileEditButton: $("#profileEditButton"),
-  profileCover: $("#profileCover"),
-  profileAvatar: $("#profileAvatar"),
-  profileName: $("#profileName"),
-  profileHandle: $("#profileHandle"),
-  profileBio: $("#profileBio"),
+  syncSettingsButton: $("#syncSettingsButton"),
   mobileProfileCover: $("#mobileProfileCover"),
   mobileProfileAvatar: $("#mobileProfileAvatar"),
   mobileProfileName: $("#mobileProfileName"),
@@ -31,6 +30,9 @@ const elements = {
   composerAvatar: $("#composerAvatar"),
   roleBadge: $("#roleBadge"),
   viewerNotice: $("#viewerNotice"),
+  syncStatus: $("#syncStatus"),
+  syncStatusText: $("#syncStatusText"),
+  refreshDataButton: $("#refreshDataButton"),
   composer: $("#composer"),
   postForm: $("#postForm"),
   postText: $("#postText"),
@@ -38,16 +40,9 @@ const elements = {
   photoInput: $("#photoInput"),
   imagePreviews: $("#imagePreviews"),
   photoSelectionCount: $("#photoSelectionCount"),
-  videoInput: $("#videoInput"),
-  videoPreviewWrap: $("#videoPreviewWrap"),
-  videoPreview: $("#videoPreview"),
-  videoMeta: $("#videoMeta"),
-  removeVideo: $("#removeVideo"),
   charCount: $("#charCount"),
   timelineFeed: $("#timelineFeed"),
   emptyState: $("#emptyState"),
-  postCount: $("#postCount"),
-  photoCount: $("#photoCount"),
   editModal: $("#editModal"),
   editText: $("#editText"),
   cancelEdit: $("#cancelEdit"),
@@ -67,89 +62,60 @@ const elements = {
   removeProfileBanner: $("#removeProfileBanner"),
   cancelProfileEdit: $("#cancelProfileEdit"),
   saveProfile: $("#saveProfile"),
+  githubModal: $("#githubModal"),
+  githubTokenInput: $("#githubTokenInput"),
+  rememberTokenInput: $("#rememberTokenInput"),
+  connectionMessage: $("#connectionMessage"),
+  clearTokenButton: $("#clearTokenButton"),
+  cancelGithubButton: $("#cancelGithubButton"),
+  connectGithubButton: $("#connectGithubButton"),
   imageLightbox: $("#imageLightbox"),
   lightboxImage: $("#lightboxImage"),
   closeLightbox: $("#closeLightbox"),
-  toast: $("#toast")
+  toast: $("#toast"),
+  busyOverlay: $("#busyOverlay"),
+  busyMessage: $("#busyMessage")
 };
 
-const initialPosts = [
-  {
-    id: crypto.randomUUID(),
-    text: "新舞子マリンパークフェスの写真を整理中。スマホから短い記録と一緒に残せるようにしてみた。",
-    images: ["./sample-event.svg"],
-    video: null,
-    youtubeId: null,
-    createdAt: "2026-07-17T11:30:00+09:00"
+const fallbackState = {
+  version: 1,
+  updatedAt: "2026-07-18T00:00:00+09:00",
+  profile: {
+    name: "Ericの記録",
+    handle: "private_note",
+    bio: "写真と短い記録を残す、身内向けの非公開ページ。",
+    avatar: null,
+    banner: null
   },
-  {
-    id: crypto.randomUUID(),
-    text: "閲覧用では見るだけ。管理者用で入った場合だけ、投稿、編集、削除ができる。",
-    images: [],
-    video: null,
-    youtubeId: null,
-    createdAt: "2026-07-17T09:10:00+09:00"
-  }
-];
-
-const defaultProfile = {
-  name: "Ericの記録",
-  handle: "private_note",
-  bio: "写真と短い記録を残す、身内向けの非公開ページ。",
-  avatar: null,
-  banner: null
+  posts: [
+    {
+      id: "welcome-photo",
+      text: "スマホから投稿した内容は、見る人のスマホにも同じように表示されます。",
+      images: ["sample-event.svg"],
+      youtubeId: null,
+      createdAt: "2026-07-18T00:00:00+09:00"
+    },
+    {
+      id: "welcome-role",
+      text: "閲覧用では見るだけ。管理者用で入った場合だけ、投稿、編集、削除ができます。",
+      images: [],
+      youtubeId: null,
+      createdAt: "2026-07-17T23:50:00+09:00"
+    }
+  ]
 };
 
-let posts = loadPosts();
-let profile = loadProfile();
+let state = normalizeState(fallbackState);
+let posts = state.posts;
+let profile = state.profile;
 let pendingImages = [];
-let pendingVideo = null;
 let pendingProfileAvatar = profile.avatar;
 let pendingProfileBanner = profile.banner;
 let editingId = null;
 let deletingId = null;
 let toastTimer = null;
 let currentRole = null;
-
-function loadPosts() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : initialPosts;
-  } catch {
-    return initialPosts;
-  }
-}
-
-function loadProfile() {
-  try {
-    const saved = localStorage.getItem(PROFILE_KEY);
-    return saved ? { ...defaultProfile, ...JSON.parse(saved) } : { ...defaultProfile };
-  } catch {
-    return { ...defaultProfile };
-  }
-}
-
-function saveProfileData() {
-  try {
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-    return true;
-  } catch {
-    showToast("プロフィール画像の保存容量が足りません");
-    return false;
-  }
-}
-
-function savePosts() {
-  try {
-    const serializable = posts.map((post) => ({
-      ...post,
-      video: post.video ? { ...post.video, previewUrl: null } : null
-    }));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
-  } catch {
-    showToast("端末内の保存容量が足りません");
-  }
-}
+let loadSequence = 0;
 
 function showApp(role) {
   currentRole = role;
@@ -159,17 +125,21 @@ function showApp(role) {
   elements.composer.classList.toggle("is-hidden", !isAdmin);
   elements.viewerNotice.classList.toggle("is-hidden", isAdmin);
   elements.profileEditButton.classList.toggle("is-hidden", !isAdmin);
+  elements.syncSettingsButton.classList.toggle("is-hidden", !isAdmin);
   elements.roleBadge.textContent = isAdmin ? "管理者" : "閲覧専用";
   elements.roleBadge.classList.toggle("admin", isAdmin);
   renderProfile();
   renderPosts();
+  loadSharedState().finally(() => {
+    if (isAdmin && !getStoredToken()) window.setTimeout(openGithubModal, 250);
+  });
 }
 
 function showLogin() {
   elements.appShell.classList.add("is-hidden");
   elements.loginScreen.classList.remove("is-hidden");
   elements.password.value = "";
-  setTimeout(() => elements.password.focus(), 50);
+  window.setTimeout(() => elements.password.focus(), 50);
 }
 
 elements.loginForm.addEventListener("submit", (event) => {
@@ -199,6 +169,8 @@ elements.logoutButton.addEventListener("click", () => {
 
 elements.homeButton.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
 elements.profileEditButton.addEventListener("click", openProfileEditor);
+elements.syncSettingsButton.addEventListener("click", openGithubModal);
+elements.refreshDataButton.addEventListener("click", () => loadSharedState());
 
 elements.postText.addEventListener("input", () => {
   elements.charCount.textContent = String(MAX_TEXT_LENGTH - elements.postText.value.length);
@@ -218,7 +190,7 @@ elements.photoInput.addEventListener("change", async () => {
   for (const file of accepted) {
     try {
       const data = await compressImage(file);
-      pendingImages.push({ id: crypto.randomUUID(), data, name: file.name });
+      pendingImages.push({ id: createId(), data, name: file.name });
       renderPendingImages();
     } catch {
       showToast(`${file.name}を読み込めませんでした`);
@@ -235,31 +207,7 @@ elements.imagePreviews.addEventListener("click", (event) => {
   renderPendingImages();
 });
 
-elements.videoInput.addEventListener("change", () => {
-  const file = elements.videoInput.files?.[0];
-  if (!file) return;
-  if (!file.type.startsWith("video/")) {
-    showToast("動画ファイルを選んでください");
-    elements.videoInput.value = "";
-    return;
-  }
-  if (file.size > MAX_VIDEO_SIZE) {
-    showToast("動画は4GBまでです");
-    elements.videoInput.value = "";
-    return;
-  }
-
-  clearPendingVideo();
-  const previewUrl = URL.createObjectURL(file);
-  pendingVideo = { file, previewUrl };
-  elements.videoPreview.src = previewUrl;
-  elements.videoMeta.textContent = `${file.name}　${formatBytes(file.size)}`;
-  elements.videoPreviewWrap.classList.remove("is-hidden");
-});
-
-elements.removeVideo.addEventListener("click", () => clearPendingVideo());
-
-elements.postForm.addEventListener("submit", (event) => {
+elements.postForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (currentRole !== "admin") return;
 
@@ -271,33 +219,42 @@ elements.postForm.addEventListener("submit", (event) => {
     showToast("YouTubeリンクを確認してください");
     return;
   }
-  if (!text && !pendingImages.length && !pendingVideo && !youtubeId) {
-    showToast("文章またはメディアを追加してください");
+  if (!text && !pendingImages.length && !youtubeId) {
+    showToast("文章、写真、YouTubeリンクのどれかを追加してください");
     return;
   }
 
-  const video = pendingVideo
-    ? {
-        name: pendingVideo.file.name,
-        size: pendingVideo.file.size,
-        type: pendingVideo.file.type,
-        previewUrl: pendingVideo.previewUrl
-      }
-    : null;
+  const token = requireGithubToken();
+  if (!token) return;
 
-  posts.unshift({
-    id: crypto.randomUUID(),
-    text,
-    images: pendingImages.map((image) => image.data),
-    video,
-    youtubeId,
-    createdAt: new Date().toISOString()
-  });
+  showBusy(pendingImages.length ? "写真をアップロード中" : "投稿を保存中");
+  setSyncStatus("saving", "GitHubへ保存中");
 
-  savePosts();
-  resetComposerAfterPost();
-  renderPosts();
-  showToast(video ? "動画を投稿しました。再生は現在の画面内で有効です" : "投稿しました");
+  try {
+    const uploadedImages = [];
+    for (let index = 0; index < pendingImages.length; index += 1) {
+      elements.busyMessage.textContent = `写真をアップロード中 ${index + 1}/${pendingImages.length}`;
+      uploadedImages.push(await uploadImageData(pendingImages[index].data, `post-${Date.now()}-${index + 1}-${createId()}.jpg`, token));
+    }
+
+    const nextPosts = [{
+      id: createId(),
+      text,
+      images: uploadedImages,
+      youtubeId,
+      createdAt: new Date().toISOString()
+    }, ...posts];
+
+    elements.busyMessage.textContent = "投稿を保存中";
+    await commitState(nextPosts, profile, "Add timeline post", token);
+    resetComposerAfterPost();
+    renderPosts();
+    showToast("投稿しました");
+  } catch (error) {
+    handleSaveError(error);
+  } finally {
+    hideBusy();
+  }
 });
 
 elements.timelineFeed.addEventListener("click", (event) => {
@@ -312,7 +269,7 @@ elements.timelineFeed.addEventListener("click", (event) => {
     editingId = id;
     elements.editText.value = post.text ?? "";
     elements.editModal.classList.remove("is-hidden");
-    setTimeout(() => elements.editText.focus(), 30);
+    window.setTimeout(() => elements.editText.focus(), 30);
   }
 
   if (action === "delete") {
@@ -326,21 +283,32 @@ elements.editModal.addEventListener("click", (event) => {
   if (event.target === elements.editModal) closeEditModal();
 });
 
-elements.saveEdit.addEventListener("click", () => {
-  if (!editingId) return;
+elements.saveEdit.addEventListener("click", async () => {
+  if (!editingId || currentRole !== "admin") return;
   const text = elements.editText.value.trim();
   const target = posts.find((post) => post.id === editingId);
-  const hasMedia = getPostImages(target).length || target?.video || target?.youtubeId;
+  const hasMedia = getPostImages(target).length || target?.youtubeId;
   if (!text && !hasMedia) {
     showToast("文章を入力してください");
     return;
   }
 
-  posts = posts.map((post) => post.id === editingId ? { ...post, text } : post);
-  savePosts();
-  renderPosts();
-  closeEditModal();
-  showToast("変更を保存しました");
+  const token = requireGithubToken();
+  if (!token) return;
+  const nextPosts = posts.map((post) => post.id === editingId ? { ...post, text } : post);
+  showBusy("変更を保存中");
+  setSyncStatus("saving", "GitHubへ保存中");
+
+  try {
+    await commitState(nextPosts, profile, "Edit timeline post", token);
+    renderPosts();
+    closeEditModal();
+    showToast("変更を保存しました");
+  } catch (error) {
+    handleSaveError(error);
+  } finally {
+    hideBusy();
+  }
 });
 
 elements.cancelDelete.addEventListener("click", closeDeleteModal);
@@ -348,15 +316,24 @@ elements.deleteModal.addEventListener("click", (event) => {
   if (event.target === elements.deleteModal) closeDeleteModal();
 });
 
-elements.confirmDelete.addEventListener("click", () => {
+elements.confirmDelete.addEventListener("click", async () => {
   if (!deletingId || currentRole !== "admin") return;
-  const target = posts.find((post) => post.id === deletingId);
-  if (target?.video?.previewUrl) URL.revokeObjectURL(target.video.previewUrl);
-  posts = posts.filter((post) => post.id !== deletingId);
-  savePosts();
-  renderPosts();
-  closeDeleteModal();
-  showToast("削除しました");
+  const token = requireGithubToken();
+  if (!token) return;
+  const nextPosts = posts.filter((post) => post.id !== deletingId);
+  showBusy("投稿を削除中");
+  setSyncStatus("saving", "GitHubへ保存中");
+
+  try {
+    await commitState(nextPosts, profile, "Delete timeline post", token);
+    renderPosts();
+    closeDeleteModal();
+    showToast("削除しました");
+  } catch (error) {
+    handleSaveError(error);
+  } finally {
+    hideBusy();
+  }
 });
 
 elements.profileAvatarInput.addEventListener("change", async () => {
@@ -399,13 +376,13 @@ elements.profileModal.addEventListener("click", (event) => {
   if (event.target === elements.profileModal) closeProfileEditor();
 });
 
-elements.saveProfile.addEventListener("click", () => {
+elements.saveProfile.addEventListener("click", async () => {
   if (currentRole !== "admin") return;
   const name = elements.profileNameInput.value.trim();
   const handle = elements.profileHandleInput.value
     .trim()
     .replace(/^@/, "")
-    .replace(/[^A-Za-z0-9_\-぀-ヿ㐀-鿿]/g, "")
+    .replace(/[^A-Za-z0-9_\-\u3040-\u30ff\u3400-\u9fff]/g, "")
     .slice(0, 20);
 
   if (!name) {
@@ -419,19 +396,92 @@ elements.saveProfile.addEventListener("click", () => {
     return;
   }
 
-  profile = {
-    name,
-    handle,
-    bio: elements.profileBioInput.value.trim(),
-    avatar: pendingProfileAvatar,
-    banner: pendingProfileBanner
-  };
+  const token = requireGithubToken();
+  if (!token) return;
+  showBusy("プロフィールを保存中");
+  setSyncStatus("saving", "GitHubへ保存中");
 
-  if (!saveProfileData()) return;
-  renderProfile();
-  renderPosts();
-  closeProfileEditor();
-  showToast("プロフィールを保存しました");
+  try {
+    let avatar = pendingProfileAvatar;
+    let banner = pendingProfileBanner;
+    if (isDataImage(avatar)) {
+      elements.busyMessage.textContent = "アイコンをアップロード中";
+      avatar = await uploadImageData(avatar, `profile-avatar-${Date.now()}-${createId()}.jpg`, token);
+    }
+    if (isDataImage(banner)) {
+      elements.busyMessage.textContent = "バナーをアップロード中";
+      banner = await uploadImageData(banner, `profile-banner-${Date.now()}-${createId()}.jpg`, token);
+    }
+
+    const nextProfile = {
+      name,
+      handle,
+      bio: elements.profileBioInput.value.trim(),
+      avatar,
+      banner
+    };
+
+    elements.busyMessage.textContent = "プロフィールを保存中";
+    await commitState(posts, nextProfile, "Update timeline profile", token);
+    renderProfile();
+    renderPosts();
+    closeProfileEditor();
+    showToast("プロフィールを保存しました");
+  } catch (error) {
+    handleSaveError(error);
+  } finally {
+    hideBusy();
+  }
+});
+
+elements.cancelGithubButton.addEventListener("click", closeGithubModal);
+elements.githubModal.addEventListener("click", (event) => {
+  if (event.target === elements.githubModal) closeGithubModal();
+});
+
+elements.clearTokenButton.addEventListener("click", () => {
+  localStorage.removeItem(TOKEN_LOCAL_KEY);
+  sessionStorage.removeItem(TOKEN_SESSION_KEY);
+  elements.githubTokenInput.value = "";
+  setConnectionMessage("保存済みトークンを削除しました", true);
+  setSyncStatus("error", "GitHub未接続");
+});
+
+elements.connectGithubButton.addEventListener("click", async () => {
+  const token = elements.githubTokenInput.value.trim();
+  if (!token) {
+    setConnectionMessage("トークンを貼り付けてください");
+    elements.githubTokenInput.focus();
+    return;
+  }
+
+  elements.connectGithubButton.disabled = true;
+  setConnectionMessage("接続を確認中", true);
+
+  try {
+    const response = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}`, {
+      headers: githubHeaders(token),
+      cache: "no-store"
+    });
+
+    if (!response.ok) throw await createGithubError(response);
+    const repository = await response.json();
+    if (repository.full_name?.toLowerCase() !== `${GITHUB_OWNER}/${GITHUB_REPO}`.toLowerCase()) {
+      throw new Error("接続先リポジトリを確認できませんでした");
+    }
+    if (repository.permissions?.push === false) {
+      throw new Error("このトークンには書き込み権限がありません。ContentsをRead and writeにしてください");
+    }
+
+    storeToken(token, elements.rememberTokenInput.checked);
+    setConnectionMessage("接続できました", true);
+    await loadSharedState();
+    window.setTimeout(closeGithubModal, 650);
+  } catch (error) {
+    setConnectionMessage(toUserError(error));
+  } finally {
+    elements.connectGithubButton.disabled = false;
+  }
 });
 
 elements.closeLightbox.addEventListener("click", closeLightbox);
@@ -444,8 +494,218 @@ document.addEventListener("keydown", (event) => {
   closeEditModal();
   closeDeleteModal();
   closeProfileEditor();
+  closeGithubModal();
   closeLightbox();
 });
+
+async function loadSharedState() {
+  const sequence = ++loadSequence;
+  setSyncStatus("loading", "共通データを読み込み中");
+  elements.refreshDataButton.disabled = true;
+  const token = currentRole === "admin" ? getStoredToken() : "";
+
+  try {
+    let loaded;
+    let source = "GitHub";
+    try {
+      loaded = await fetchStateFromGithub(token);
+    } catch {
+      loaded = await fetchStateFromPages();
+      source = "公開ページ";
+    }
+
+    if (sequence !== loadSequence) return;
+    state = normalizeState(loaded);
+    posts = state.posts;
+    profile = state.profile;
+    pendingProfileAvatar = profile.avatar;
+    pendingProfileBanner = profile.banner;
+    renderProfile();
+    renderPosts();
+    setSyncStatus("ok", `${source}から同期 ${formatSyncTime(state.updatedAt)}`);
+  } catch {
+    if (sequence !== loadSequence) return;
+    setSyncStatus("error", "共通データを取得できません。更新を押してください");
+  } finally {
+    if (sequence === loadSequence) elements.refreshDataButton.disabled = false;
+  }
+}
+
+async function fetchStateFromGithub(token = "") {
+  const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${STATE_PATH}?ref=${encodeURIComponent(GITHUB_BRANCH)}&t=${Date.now()}`;
+  const response = await fetch(url, {
+    headers: githubHeaders(token, { Accept: "application/vnd.github.raw+json" }),
+    cache: "no-store"
+  });
+  if (!response.ok) throw await createGithubError(response);
+  const text = await response.text();
+  const parsed = JSON.parse(text);
+  if (parsed && typeof parsed === "object" && typeof parsed.content === "string") {
+    return JSON.parse(base64ToUtf8(parsed.content));
+  }
+  return parsed;
+}
+
+async function fetchStateFromPages() {
+  const response = await fetch(`./${STATE_PATH}?t=${Date.now()}`, { cache: "no-store" });
+  if (!response.ok) throw new Error("公開データを取得できませんでした");
+  return response.json();
+}
+
+async function commitState(nextPosts, nextProfile, message, token) {
+  const nextState = normalizeState({
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    profile: nextProfile,
+    posts: nextPosts
+  });
+
+  const content = utf8ToBase64(`${JSON.stringify(nextState, null, 2)}\n`);
+  await putGithubFile(STATE_PATH, content, message, token);
+  state = nextState;
+  posts = state.posts;
+  profile = state.profile;
+  pendingProfileAvatar = profile.avatar;
+  pendingProfileBanner = profile.banner;
+  setSyncStatus("ok", `GitHubへ保存 ${formatSyncTime(state.updatedAt)}`);
+}
+
+async function uploadImageData(dataUrl, filename, token) {
+  const match = /^data:image\/[a-zA-Z0-9.+-]+;base64,(.+)$/.exec(dataUrl);
+  if (!match) throw new Error("写真データを読み込めませんでした");
+  const path = `media/${filename}`;
+  await putGithubFile(path, match[1], "Upload timeline image", token);
+  return path;
+}
+
+async function putGithubFile(path, base64Content, message, token) {
+  const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    let sha;
+    const current = await fetch(`${url}?ref=${encodeURIComponent(GITHUB_BRANCH)}&t=${Date.now()}`, {
+      headers: githubHeaders(token),
+      cache: "no-store"
+    });
+
+    if (current.ok) {
+      const metadata = await current.json();
+      sha = metadata.sha;
+    } else if (current.status !== 404) {
+      throw await createGithubError(current);
+    }
+
+    const body = {
+      message,
+      content: base64Content,
+      branch: GITHUB_BRANCH
+    };
+    if (sha) body.sha = sha;
+
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: githubHeaders(token, { "Content-Type": "application/json" }),
+      body: JSON.stringify(body)
+    });
+
+    if (response.ok) return response.json();
+    if (response.status !== 409 || attempt === 1) throw await createGithubError(response);
+  }
+
+  throw new Error("GitHubへの保存に失敗しました");
+}
+
+function githubHeaders(token = "", extra = {}) {
+  const headers = {
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    ...extra
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
+async function createGithubError(response) {
+  let message = "";
+  try {
+    const body = await response.json();
+    message = body.message ?? "";
+  } catch {
+    message = "";
+  }
+  const error = new Error(message || `GitHub error ${response.status}`);
+  error.status = response.status;
+  return error;
+}
+
+function toUserError(error) {
+  if (error?.status === 401) return "トークンが正しくありません。作り直した場合は新しい方を貼ってください";
+  if (error?.status === 403) return "トークンの権限が足りません。ContentsをRead and writeにしてください";
+  if (error?.status === 404) return "kiyu_privateへ接続できません。Repository accessで選択されているか確認してください";
+  if (error?.status === 409) return "同時に更新されました。更新を押してから、もう一度保存してください";
+  if (error?.status === 422) return "GitHubが保存を受け付けませんでした。mainブランチと権限を確認してください";
+  if (error instanceof TypeError) return "通信できませんでした。電波を確認してもう一度試してください";
+  return error?.message || "保存できませんでした";
+}
+
+function handleSaveError(error) {
+  setSyncStatus("error", "保存できませんでした");
+  showToast(toUserError(error));
+}
+
+function getStoredToken() {
+  return sessionStorage.getItem(TOKEN_SESSION_KEY) || localStorage.getItem(TOKEN_LOCAL_KEY) || "";
+}
+
+function storeToken(token, remember) {
+  if (remember) {
+    localStorage.setItem(TOKEN_LOCAL_KEY, token);
+    sessionStorage.removeItem(TOKEN_SESSION_KEY);
+  } else {
+    sessionStorage.setItem(TOKEN_SESSION_KEY, token);
+    localStorage.removeItem(TOKEN_LOCAL_KEY);
+  }
+}
+
+function requireGithubToken() {
+  const token = getStoredToken();
+  if (token) return token;
+  openGithubModal();
+  showToast("先にGitHubへ接続してください");
+  return "";
+}
+
+function openGithubModal() {
+  if (currentRole !== "admin") return;
+  elements.githubTokenInput.value = getStoredToken();
+  elements.connectionMessage.textContent = "";
+  elements.connectionMessage.classList.remove("success");
+  elements.githubModal.classList.remove("is-hidden");
+  window.setTimeout(() => elements.githubTokenInput.focus(), 30);
+}
+
+function closeGithubModal() {
+  elements.githubModal.classList.add("is-hidden");
+}
+
+function setConnectionMessage(message, success = false) {
+  elements.connectionMessage.textContent = message;
+  elements.connectionMessage.classList.toggle("success", success);
+}
+
+function setSyncStatus(kind, message) {
+  elements.syncStatus.className = `sync-status ${kind}`;
+  elements.syncStatusText.textContent = message;
+}
+
+function showBusy(message) {
+  elements.busyMessage.textContent = message;
+  elements.busyOverlay.classList.remove("is-hidden");
+}
+
+function hideBusy() {
+  elements.busyOverlay.classList.add("is-hidden");
+}
 
 function closeEditModal() {
   editingId = null;
@@ -473,12 +733,12 @@ function closeProfileEditor() {
 }
 
 function renderProfilePreview() {
-  applyCover(elements.profilePreviewCover, pendingProfileBanner);
-  setAvatar(elements.profilePreviewAvatar, pendingProfileAvatar, elements.profileNameInput.value || profile.name);
+  applyCover(elements.profilePreviewCover, pendingProfileBanner, false);
+  setAvatar(elements.profilePreviewAvatar, pendingProfileAvatar, elements.profileNameInput.value || profile.name, false);
 }
 
 function openLightbox(source) {
-  elements.lightboxImage.src = source;
+  elements.lightboxImage.src = assetUrl(source);
   elements.imageLightbox.classList.remove("is-hidden");
   document.body.style.overflow = "hidden";
 }
@@ -496,17 +756,14 @@ function renderPendingImages() {
   pendingImages.forEach((image, index) => {
     const item = document.createElement("div");
     item.className = "image-preview-item";
-
     const preview = document.createElement("img");
     preview.src = image.data;
     preview.alt = `選択した写真 ${index + 1}`;
-
     const remove = document.createElement("button");
     remove.type = "button";
     remove.dataset.imageId = image.id;
     remove.setAttribute("aria-label", `写真${index + 1}を外す`);
     remove.textContent = "×";
-
     item.append(preview, remove);
     elements.imagePreviews.append(item);
   });
@@ -515,50 +772,32 @@ function renderPendingImages() {
   elements.photoSelectionCount.textContent = `${pendingImages.length}/${MAX_IMAGES}`;
 }
 
-function clearPendingVideo({ revoke = true } = {}) {
-  if (pendingVideo?.previewUrl && revoke) URL.revokeObjectURL(pendingVideo.previewUrl);
-  pendingVideo = null;
-  elements.videoInput.value = "";
-  elements.videoPreview.pause();
-  elements.videoPreview.removeAttribute("src");
-  elements.videoPreview.load();
-  elements.videoMeta.textContent = "";
-  elements.videoPreviewWrap.classList.add("is-hidden");
-}
-
 function resetComposerAfterPost() {
   elements.postText.value = "";
   elements.youtubeInput.value = "";
   elements.charCount.textContent = String(MAX_TEXT_LENGTH);
   pendingImages = [];
   renderPendingImages();
-  clearPendingVideo({ revoke: false });
 }
 
 function renderProfile() {
-  elements.profileName.textContent = profile.name;
-  elements.profileHandle.textContent = `@${profile.handle}`;
-  elements.profileBio.textContent = profile.bio;
   elements.mobileProfileName.textContent = profile.name;
   elements.mobileProfileHandle.textContent = `@${profile.handle}`;
   elements.mobileProfileBio.textContent = profile.bio;
-
-  applyCover(elements.profileCover, profile.banner);
   applyCover(elements.mobileProfileCover, profile.banner);
-  setAvatar(elements.profileAvatar, profile.avatar, profile.name);
   setAvatar(elements.mobileProfileAvatar, profile.avatar, profile.name);
   setAvatar(elements.composerAvatar, profile.avatar, profile.name);
 }
 
-function applyCover(element, source) {
-  element.style.backgroundImage = source ? `url("${source}")` : "";
+function applyCover(element, source, resolveAsset = true) {
+  element.style.backgroundImage = source ? `url("${resolveAsset ? assetUrl(source) : source}")` : "";
 }
 
-function setAvatar(element, source, name) {
+function setAvatar(element, source, name, resolveAsset = true) {
   element.replaceChildren();
   if (source) {
     const image = document.createElement("img");
-    image.src = source;
+    image.src = resolveAsset ? assetUrl(source) : source;
     image.alt = "";
     element.append(image);
     return;
@@ -570,8 +809,6 @@ function renderPosts() {
   elements.timelineFeed.replaceChildren();
   posts.forEach((post) => elements.timelineFeed.append(createPostElement(post)));
   elements.emptyState.classList.toggle("is-hidden", posts.length > 0);
-  elements.postCount.textContent = String(posts.length);
-  elements.photoCount.textContent = String(posts.reduce((total, post) => total + getPostImages(post).length, 0));
 }
 
 function createPostElement(post) {
@@ -584,7 +821,6 @@ function createPostElement(post) {
 
   const body = document.createElement("div");
   body.className = "post-body";
-
   const meta = document.createElement("div");
   meta.className = "post-meta";
   const name = document.createElement("span");
@@ -595,6 +831,7 @@ function createPostElement(post) {
   handle.textContent = `@${profile.handle}`;
   const time = document.createElement("time");
   time.className = "post-time";
+  time.dateTime = post.createdAt;
   time.textContent = formatDate(post.createdAt);
   meta.append(name, handle, time);
   body.append(meta);
@@ -616,33 +853,15 @@ function createPostElement(post) {
       button.className = "post-image-button";
       button.setAttribute("aria-label", `写真${index + 1}を拡大する`);
       button.addEventListener("click", () => openLightbox(source));
-
       const image = document.createElement("img");
       image.className = "post-image";
-      image.src = source;
+      image.src = assetUrl(source);
       image.alt = `投稿された写真 ${index + 1}`;
       image.loading = "lazy";
       button.append(image);
       grid.append(button);
     });
     body.append(grid);
-  }
-
-  if (post.video) {
-    if (post.video.previewUrl) {
-      const video = document.createElement("video");
-      video.className = "post-video";
-      video.src = post.video.previewUrl;
-      video.controls = true;
-      video.playsInline = true;
-      video.preload = "metadata";
-      body.append(video);
-    } else {
-      const placeholder = document.createElement("div");
-      placeholder.className = "video-placeholder";
-      placeholder.textContent = `${post.video.name}（${formatBytes(post.video.size)}）は本番ストレージ接続後に再生できます`;
-      body.append(placeholder);
-    }
   }
 
   if (post.youtubeId) {
@@ -661,10 +880,19 @@ function createPostElement(post) {
   if (currentRole === "admin") {
     const actions = document.createElement("div");
     actions.className = "post-actions";
-    actions.innerHTML = `
-      <button class="post-action" type="button" data-action="edit" data-id="${post.id}">編集</button>
-      <button class="post-action danger" type="button" data-action="delete" data-id="${post.id}">削除</button>
-    `;
+    const edit = document.createElement("button");
+    edit.className = "post-action";
+    edit.type = "button";
+    edit.dataset.action = "edit";
+    edit.dataset.id = post.id;
+    edit.textContent = "編集";
+    const remove = document.createElement("button");
+    remove.className = "post-action danger";
+    remove.type = "button";
+    remove.dataset.action = "delete";
+    remove.dataset.id = post.id;
+    remove.textContent = "削除";
+    actions.append(edit, remove);
     body.append(actions);
   }
 
@@ -672,18 +900,65 @@ function createPostElement(post) {
   return article;
 }
 
+function normalizeState(value) {
+  const source = value && typeof value === "object" ? value : fallbackState;
+  const sourceProfile = source.profile && typeof source.profile === "object" ? source.profile : fallbackState.profile;
+  const normalizedProfile = {
+    name: cleanString(sourceProfile.name, 30) || fallbackState.profile.name,
+    handle: cleanString(sourceProfile.handle, 20) || fallbackState.profile.handle,
+    bio: cleanString(sourceProfile.bio, 160),
+    avatar: cleanAsset(sourceProfile.avatar),
+    banner: cleanAsset(sourceProfile.banner)
+  };
+
+  const normalizedPosts = Array.isArray(source.posts)
+    ? source.posts.slice(0, 500).map((post) => ({
+        id: cleanString(post?.id, 80) || createId(),
+        text: cleanString(post?.text, MAX_TEXT_LENGTH),
+        images: Array.isArray(post?.images) ? post.images.map(cleanAsset).filter(Boolean).slice(0, MAX_IMAGES) : [],
+        youtubeId: cleanYouTubeId(post?.youtubeId),
+        createdAt: validDateString(post?.createdAt) || new Date().toISOString()
+      }))
+    : [];
+
+  return {
+    version: 1,
+    updatedAt: validDateString(source.updatedAt) || new Date().toISOString(),
+    profile: normalizedProfile,
+    posts: normalizedPosts
+  };
+}
+
+function cleanString(value, max) {
+  return typeof value === "string" ? value.slice(0, max) : "";
+}
+
+function cleanAsset(value) {
+  if (typeof value !== "string") return null;
+  if (/^(data:image\/|https?:\/\/|[./]*media\/|[./]*sample-event\.svg$)/i.test(value)) return value;
+  return null;
+}
+
+function validDateString(value) {
+  return typeof value === "string" && Number.isFinite(new Date(value).getTime()) ? value : "";
+}
+
+function assetUrl(source) {
+  if (!source) return "";
+  if (/^(data:|blob:|https?:\/\/)/i.test(source)) return source;
+  const clean = source.replace(/^\.\//, "").replace(/^\//, "");
+  return `./${clean}?v=${encodeURIComponent(state.updatedAt)}`;
+}
+
 function getPostImages(post) {
-  if (Array.isArray(post?.images)) return post.images;
-  return post?.image ? [post.image] : [];
+  return Array.isArray(post?.images) ? post.images : [];
 }
 
 function getYouTubeId(value) {
   try {
     const url = new URL(value);
     const host = url.hostname.toLowerCase().replace(/^www\./, "");
-
     if (host === "youtu.be") return cleanYouTubeId(url.pathname.split("/").filter(Boolean)[0]);
-
     if (["youtube.com", "m.youtube.com", "music.youtube.com"].includes(host)) {
       if (url.pathname === "/watch") return cleanYouTubeId(url.searchParams.get("v"));
       const parts = url.pathname.split("/").filter(Boolean);
@@ -696,7 +971,7 @@ function getYouTubeId(value) {
 }
 
 function cleanYouTubeId(value) {
-  return value && /^[A-Za-z0-9_-]{6,20}$/.test(value) ? value : null;
+  return typeof value === "string" && /^[A-Za-z0-9_-]{6,20}$/.test(value) ? value : null;
 }
 
 function formatDate(value) {
@@ -709,15 +984,13 @@ function formatDate(value) {
   ).format(date);
 }
 
-function formatBytes(bytes) {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "0B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const value = bytes / (1024 ** index);
-  return `${value >= 10 || index === 0 ? value.toFixed(0) : value.toFixed(1)}${units[index]}`;
+function formatSyncTime(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  return new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
-async function compressImage(file, { max = 960, quality = .76 } = {}) {
+async function compressImage(file, { max = 1280, quality = .78 } = {}) {
   const source = await loadImage(file);
   const widthSource = source.naturalWidth || source.width;
   const heightSource = source.naturalHeight || source.height;
@@ -737,7 +1010,6 @@ async function compressImage(file, { max = 960, quality = .76 } = {}) {
 
 async function loadImage(file) {
   if ("createImageBitmap" in window) return createImageBitmap(file);
-
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = reject;
@@ -751,11 +1023,34 @@ async function loadImage(file) {
   });
 }
 
+function utf8ToBase64(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  }
+  return btoa(binary);
+}
+
+function base64ToUtf8(value) {
+  const binary = atob(value.replace(/\s/g, ""));
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function createId() {
+  return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function isDataImage(value) {
+  return typeof value === "string" && value.startsWith("data:image/");
+}
+
 function showToast(message) {
-  clearTimeout(toastTimer);
+  window.clearTimeout(toastTimer);
   elements.toast.textContent = message;
   elements.toast.classList.add("show");
-  toastTimer = setTimeout(() => elements.toast.classList.remove("show"), 2400);
+  toastTimer = window.setTimeout(() => elements.toast.classList.remove("show"), 3000);
 }
 
 const savedRole = sessionStorage.getItem(ROLE_KEY);

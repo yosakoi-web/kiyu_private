@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-18T00:00:00+09:00",
+  "profile": {
+    "name": "Ericの記録",
+    "handle": "private_note",
+    "bio": "写真と短い記録を残す、身内向けの非公開ページ。",
+    "avatar": null,
+    "banner": null
+  },
+  "posts": [
+    {
+      "id": "welcome-photo",
+      "text": "スマホから投稿した内容は、見る人のスマホにも同じように表示されます。",
+      "images": [
+        "sample-event.svg"
+      ],
+      "youtubeId": null,
+      "createdAt": "2026-07-18T00:00:00+09:00"
+    },
+    {
+      "id": "welcome-role",
+      "text": "閲覧用では見るだけ。管理者用で入った場合だけ、投稿、編集、削除ができます。",
+      "images": [],
+      "youtubeId": null,
+      "createdAt": "2026-07-17T23:50:00+09:00"
+    }
+  ]
+}
