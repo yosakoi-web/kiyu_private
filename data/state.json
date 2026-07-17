@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-17T16:46:26.459Z",
+  "updatedAt": "2026-07-17T16:48:20.200Z",
   "profile": {
-    "name": "Ericの記録",
+    "name": "きゆ",
     "handle": "private_note",
-    "bio": "写真と短い記録を残す、身内向けの非公開ページ。",
-    "avatar": null,
-    "banner": null
+    "bio": "完全プライベートのSNS",
+    "avatar": "media/profile-avatar-1784306896115-7f78c06b-567f-4b4d-b160-4b9e803607f1.jpg",
+    "banner": "media/profile-banner-1784306897947-1000a947-b0b1-4654-9b42-b8105574c48d.jpg"
   },
   "posts": []
 }
