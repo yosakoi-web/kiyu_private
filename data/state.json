@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-17T16:46:23.575Z",
+  "updatedAt": "2026-07-17T16:46:26.459Z",
   "profile": {
     "name": "Ericの記録",
     "handle": "private_note",
@@ -8,13 +8,5 @@
     "avatar": null,
     "banner": null
   },
-  "posts": [
-    {
-      "id": "welcome-role",
-      "text": "閲覧用では見るだけ。管理者用で入った場合だけ、投稿、編集、削除ができます。",
-      "images": [],
-      "youtubeId": null,
-      "createdAt": "2026-07-17T23:50:00+09:00"
-    }
-  ]
+  "posts": []
 }
