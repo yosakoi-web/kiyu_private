@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-18T01:49:44.539Z",
+  "updatedAt": "2026-07-18T01:55:11.519Z",
   "profile": {
     "name": "きゆ",
     "handle": "001-A",
@@ -9,13 +9,6 @@
     "banner": "media/profile-banner-1784307282027-391c2b76-a251-4360-adef-300e6ea77352.jpg"
   },
   "posts": [
-    {
-      "id": "383f1b1b-cd97-47ff-9adf-bf200c9aff6f",
-      "text": "朝から本当に鬱陶しい…",
-      "images": [],
-      "youtubeId": null,
-      "createdAt": "2026-07-18T01:49:44.539Z"
-    },
     {
       "id": "8f585093-a696-4216-8b6b-cfdbe43c7d2f",
       "text": "ねむ…",
