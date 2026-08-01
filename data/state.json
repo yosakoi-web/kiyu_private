@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-01T11:35:24.831Z",
+  "updatedAt": "2026-08-01T12:14:54.425Z",
   "profile": {
     "name": "きゆ",
     "handle": "001-A",
@@ -9,6 +9,13 @@
     "banner": "media/profile-banner-1784307282027-391c2b76-a251-4360-adef-300e6ea77352.jpg"
   },
   "posts": [
+    {
+      "id": "09ff035d-c9fc-4493-a7b8-7e0ef7569ea0",
+      "text": "お風呂入るとさっぱりするけど、お風呂上がりが直後が1番嫌い(>_<｡)",
+      "images": [],
+      "youtubeId": null,
+      "createdAt": "2026-08-01T12:14:54.425Z"
+    },
     {
       "id": "aea23640-715a-4002-aec4-c20eeea65353",
       "text": "俺しか呟けない…2525は見るだけ",
