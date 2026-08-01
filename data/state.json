@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-01T12:14:54.425Z",
+  "updatedAt": "2026-08-01T12:15:09.833Z",
   "profile": {
     "name": "きゆ",
     "handle": "001-A",
@@ -29,15 +29,6 @@
       "images": [],
       "youtubeId": null,
       "createdAt": "2026-07-17T23:26:47.191Z"
-    },
-    {
-      "id": "082009c4-798a-4b4e-b7c9-66fdd8f357af",
-      "text": "いよいよ明日",
-      "images": [
-        "media/post-1784306998208-1-b4d1e54c-bcf8-441f-956a-a18bb224d812.jpg"
-      ],
-      "youtubeId": null,
-      "createdAt": "2026-07-17T16:50:00.452Z"
     }
   ]
 }
