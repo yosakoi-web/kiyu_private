@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-02T19:36:58.291Z",
+  "updatedAt": "2026-08-04T05:01:03.950Z",
   "profile": {
     "name": "きゆ",
     "handle": "001-A",
@@ -9,6 +9,13 @@
     "banner": "media/profile-banner-1784307282027-391c2b76-a251-4360-adef-300e6ea77352.jpg"
   },
   "posts": [
+    {
+      "id": "81a7df8d-924d-4212-ab00-a9d576a5367c",
+      "text": "ミニ四駆のパーツ買うかな",
+      "images": [],
+      "youtubeId": null,
+      "createdAt": "2026-08-04T05:01:03.950Z"
+    },
     {
       "id": "04a6e5b0-892f-43cf-b372-09a4810e145b",
       "text": "耳がいいあるあるか分からないけど、扇風機とか換気扇から出てる周波数？キーンっていう音が耳障りで寝れない。",
