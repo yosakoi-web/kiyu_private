@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-04T10:04:27.010Z",
+  "updatedAt": "2026-08-07T13:44:31.654Z",
   "profile": {
     "name": "きゆ",
     "handle": "001-A",
@@ -9,6 +9,13 @@
     "banner": "media/profile-banner-1784307282027-391c2b76-a251-4360-adef-300e6ea77352.jpg"
   },
   "posts": [
+    {
+      "id": "a5945f3a-da1f-4673-af97-d5f7caae0a1e",
+      "text": "思い返すと、怒られる事はあっても叱られた事はないな…🙃",
+      "images": [],
+      "youtubeId": null,
+      "createdAt": "2026-08-07T13:44:31.654Z"
+    },
     {
       "id": "3dabdf56-da34-47dc-adaf-777dcdc20ef5",
       "text": "ミニ四駆のパーツ間違えた(ﾉ≧ڡ≦)☆",
